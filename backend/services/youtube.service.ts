@@ -1,30 +1,53 @@
 import ytsr from 'ytsr';
 import { Song } from '../models/song.model';
 
+console.log("🔥 YOUTUBE SERVICE CARGADO");
+
 export class YoutubeService {
   async search(query: string): Promise<Song[]> {
-    if (!query) return [];
+    if (!query || query.trim() === '') return [];
 
     const searchResults = await ytsr(query, { limit: 10 });
 
+  
+    console.log("🔥 SEARCH QUERY:", query);
+    console.log("🔥 TOTAL ITEMS:", searchResults.items.length);
+
     const songs: Song[] = searchResults.items
-      .filter((item: any) => item.type === 'video')
-      .map((video: any) => ({
-        id: video.id,
-        title: video.title,
-        artist: video.author?.name || 'Unknown',
-        duration: video.duration
-          ? this.parseDuration(video.duration)
-          : 0,
-        url: video.url,
-        thumbnail: video.bestThumbnail?.url || ''
-      }));
+      .filter((item: any) => item?.type === 'video')
+      .map((video: any) => {
+
+        const url = video.url || '';
+
+      
+        let videoId = video.id;
+
+        if (!videoId && url.includes('v=')) {
+          videoId = url.split('v=')[1]?.split('&')[0];
+        }
+
+        return {
+          id: videoId || '',
+          title: video.title || 'Unknown Title',
+          artist: video.author?.name || 'Unknown Artist',
+          duration: video.duration
+            ? this.parseDuration(video.duration)
+            : 0,
+          url,
+          thumbnail: video.bestThumbnail?.url || ''
+        };
+      })
+      
+      .filter((song: Song) => song.id && song.id.length > 5);
+
+    console.log("🔥 FINAL SONGS:", songs.length);
 
     return songs;
   }
 
   async getById(id: string): Promise<Song | null> {
-    // Simple fallback (puedes mejorarlo luego)
+    if (!id || id === 'search') return null;
+
     return {
       id,
       title: 'Unknown Title',
